@@ -10,7 +10,7 @@
  */
 
 defined( 'ABSPATH' ) or die;
-define( 'HADES_ENDPOINT', 'http://127.0.0.1:8080' );
+define( 'HADES_ENDPOINT', 'http://127.0.0.1:3000/api/errors' );
 
 /**
  * On activation, enable error reporting.
@@ -77,7 +77,7 @@ function charon_handle_error( $errno, $errstr, $errfile, $errline ) {
 	}
 
 	$data = array(
-		'type'      => 'php_error',
+		'type'      => charon_get_error_type( $errno ),
 		'errno'     => $errno,
 		'message'   => $errstr,
 		'file'      => $errfile,
@@ -115,16 +115,44 @@ function charon_handle_exception( $exception ) {
 function charon_handle_shutdown() {
 	$error = error_get_last();
 
-	if ( is_array( $error ) && in_array( $error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR ), true ) ) {
+	if ( is_array( $error ) ) {
 		$data = array(
 			'type'      => 'shutdown',
 			'message'   => $error['message'],
 			'file'      => $error['file'],
 			'line'      => $error['line'],
+			'errno'     => $error['type'],
 			'timestamp' => time(),
 		);
 
 		charon_send_payload( $data );
+	}
+}
+
+/**
+ * Get the string representation of a PHP error type.
+ *
+ * @param int $errno The PHP error number.
+ * @return string The error type string (e.g., 'php_warning', 'php_notice').
+ */
+function charon_get_error_type( $errno ) {
+	switch ( $errno ) {
+		case E_WARNING:
+		case E_USER_WARNING:
+			return 'php_warning';
+		case E_NOTICE:
+		case E_USER_NOTICE:
+			return 'php_notice';
+		case E_DEPRECATED:
+		case E_USER_DEPRECATED:
+			return 'php_deprecated';
+		case E_STRICT:
+			return 'php_strict';
+		case E_ERROR:
+		case E_USER_ERROR:
+			return 'php_fatal';
+		default:
+			return 'php_error';
 	}
 }
 
