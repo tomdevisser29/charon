@@ -35,6 +35,19 @@ function charon_boot() {
  * @param array $data Error or exception data.
  */
 function charon_send_payload( $data ) {
+	$theme = wp_get_theme();
+
+	$data['site']        = site_url();
+	$data['php_version'] = phpversion();
+	$data['wp_version']  = get_bloginfo( 'version' );
+	$data['wp_theme']    = array(
+		'name'       => $theme->get( 'Name' ),
+		'version'    => $theme->get( 'Version' ),
+		'stylesheet' => $theme->get_stylesheet(),
+	);
+	$data['wp_plugins']  = get_plugins();
+	$data['fingerprint'] = md5( $data['type'] . $data['message'] . $data['file'] . $data['line'] );
+
 	wp_remote_post(
 		HADES_ENDPOINT,
 		array(
